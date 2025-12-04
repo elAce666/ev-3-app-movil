@@ -3,7 +3,6 @@ package com.example.proyecto_app.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyecto_app.data.model.producto.Producto
-import com.example.proyecto_app.data.network.ProductoApiClient
 import com.example.proyecto_app.data.repository.ProductoRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +10,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ProductoViewModel(
-    private val repository: ProductoRepository = ProductoRepository(ProductoApiClient.instance),
+    // El repositorio ya no necesita argumentos en el constructor
+    private val repository: ProductoRepository = ProductoRepository(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
@@ -22,6 +22,7 @@ class ProductoViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
+    // Lista de ejemplo para poblar el backend si está vacío
     private val productosDeEjemplo = listOf(
         Producto(nombre = "Comida Premium para Perro (3kg)", precio = 25990.0, stock = 45),
         Producto(nombre = "Rascador para Gato XL", precio = 45000.0, stock = 15),
@@ -38,16 +39,18 @@ class ProductoViewModel(
 
     fun getProductos() {
         viewModelScope.launch(dispatcher) {
+            _isLoading.value = true
             repository.getProductos()
-                .onStart { _isLoading.value = true }
-                .catch { e -> _errorMessage.value = "Error: ${e.message}" }
+                .catch { e -> 
+                    _errorMessage.value = "Error: ${e.message}"
+                    _isLoading.value = false 
+                }
                 .collect { productosFromApi ->
                     if (productosFromApi.isEmpty()) {
-                        // Si la API no devuelve nada, se auto-pobla
                         poblarYRefrescar()
                     } else {
                         _productos.value = productosFromApi
-                        _isLoading.value = false // Detenemos la carga solo si hay productos
+                        _isLoading.value = false
                     }
                 }
         }
@@ -55,12 +58,16 @@ class ProductoViewModel(
 
     private fun poblarYRefrescar() {
         viewModelScope.launch(dispatcher) {
-            // Esta función ahora solo se encarga de crear y luego refrescar
-            productosDeEjemplo.forEach { repository.createProducto(it).collect() }
-            // Volvemos a llamar a getProductos, que esta vez SÍ encontrará datos.
-            repository.getProductos().collect{
-                _productos.value = it
-                _isLoading.value = false // Detenemos la carga al final del proceso
+            try {
+                productosDeEjemplo.forEach { repository.createProducto(it).collect() }
+                // Después de poblar, volvemos a obtener la lista actualizada
+                repository.getProductos().collect {
+                    _productos.value = it
+                    _isLoading.value = false
+                }
+            } catch (e: Exception) {
+                 _errorMessage.value = "Error al poblar: ${e.message}"
+                 _isLoading.value = false
             }
         }
     }

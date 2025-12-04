@@ -32,9 +32,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// EXPLICACIÓN (Punto H): Esta es una función de extensión para crear un archivo temporal.
-// Es necesaria para que la cámara del dispositivo tenga una ubicación donde guardar la foto de forma segura,
-// utilizando el FileProvider que configuramos en el AndroidManifest.
+// --- FUNCIÓN RESTAURADA ---
 fun Context.createImageFile(): File {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val imageFileName = "JPEG_" + timeStamp + "_"
@@ -43,10 +41,6 @@ fun Context.createImageFile(): File {
 
 @Composable
 fun ProfileScreen(onLogout: () -> Unit) {
-    // EXPLICACIÓN (Punto B y E): Aquí conectamos la UI con el ViewModel.
-    // `viewModel()` obtiene la instancia del ProfileViewModel, que contiene toda la lógica.
-    // `collectAsState()` observa el StateFlow del ViewModel. Cuando los datos del usuario cambian en el ViewModel,
-    // esta pantalla se "recompone" automáticamente para reflejar los nuevos datos. Esto es la UI dinámica.
     val viewModel: ProfileViewModel = viewModel()
     val user by viewModel.user.collectAsState()
     
@@ -59,23 +53,21 @@ fun ProfileScreen(onLogout: () -> Unit) {
     var fileUri by remember { mutableStateOf<Uri?>(null) }
     var showImageDialog by remember { mutableStateOf(false) }
 
-    // EXPLICACIÓN (Punto H): Estos son los "lanzadores" de actividades. Son la forma moderna en Compose
-    // de pedir permisos o de iniciar una actividad externa (como la cámara o la galería) y recibir un resultado.
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.updateProfilePicture(it.toString()) } // Cuando recibimos la URI de la galería, actualizamos el perfil.
+        uri?.let { viewModel.updateProfilePicture(it.toString()) }
     }
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
-        if (it) fileUri?.let { viewModel.updateProfilePicture(it.toString()) } // Si la foto se tomó con éxito, usamos la URI que habíamos creado.
+        if (it) fileUri?.let { viewModel.updateProfilePicture(it.toString()) }
     }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        if (it) { // Si el usuario concede el permiso de cámara...
+        if (it) {
             val newFile = context.createImageFile()
             fileUri = FileProvider.getUriForFile(context, "com.example.proyecto_app.provider", newFile)
-            cameraLauncher.launch(fileUri) // ...lanzamos la cámara.
+            cameraLauncher.launch(fileUri)
         }
     }
     val galleryPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        if (it) { galleryLauncher.launch("image/*") } // Si el usuario concede el permiso de galería, la lanzamos.
+        if (it) galleryLauncher.launch("image/*")
     }
 
     if (showImageDialog) {
@@ -92,7 +84,10 @@ fun ProfileScreen(onLogout: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (user == null) {
-            CircularProgressIndicator()
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+                Text("Cargando perfil...")
+            }
         } else {
             Text("Mi Perfil", style = MaterialTheme.typography.headlineLarge)
             Spacer(modifier = Modifier.height(16.dp))
@@ -103,7 +98,45 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 modifier = Modifier.size(150.dp).clip(CircleShape).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape).clickable { showImageDialog = true },
                 contentScale = ContentScale.Crop
             )
-            // ... (Resto de la UI)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(text = user!!.fullName, style = MaterialTheme.typography.titleLarge)
+            Text(text = user!!.email, style = MaterialTheme.typography.bodyMedium)
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+
+            OutlinedTextField(value = genero, onValueChange = viewModel::onGeneroChange, label = { Text("Género") }, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = edad, onValueChange = viewModel::onEdadChange, label = { Text("Edad") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = direccion, onValueChange = viewModel::onDireccionChange, label = { Text("Dirección") }, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = telefono, onValueChange = viewModel::onTelefonoChange, label = { Text("Teléfono") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { viewModel.saveProfile() }, modifier = Modifier.fillMaxWidth()) { Text("Guardar Cambios") }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+            
+            Text("Historial de Compras", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(16.dp))
+            if (user!!.historialCompras.isEmpty()) {
+                Text("No has realizado compras.")
+            } else {
+                user!!.historialCompras.forEach { compra ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Compra del ${compra.fecha}", style = MaterialTheme.typography.titleMedium)
+                            Text("Total: $${String.format("%.2f", compra.total)}", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f, fill = true))
+
+            Button(onClick = onLogout, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                Text("Cerrar Sesión")
+            }
         }
     }
 }

@@ -38,14 +38,13 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo activado
         Image(
-            painter = painterResource(id = R.drawable.guau_miau), 
+            painter = painterResource(id = R.drawable.guau_miau),
             contentDescription = "Logo de Guau&Miau",
             modifier = Modifier.fillMaxWidth(0.7f)
         )
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         OutlinedTextField(
             value = email,
             onValueChange = { loginViewModel.onEmailChange(it) },

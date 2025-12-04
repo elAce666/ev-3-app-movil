@@ -16,7 +16,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _user = MutableStateFlow<User?>(null)
     val user = _user.asStateFlow()
 
-    // ... (estados para campos editables)
     private val _genero = MutableStateFlow("")
     val genero = _genero.asStateFlow()
     private val _edad = MutableStateFlow("")
@@ -43,7 +42,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-    
+
     fun onGeneroChange(value: String) { _genero.value = value }
     fun onEdadChange(value: String) { _edad.value = value }
     fun onDireccionChange(value: String) { _direccion.value = value }
@@ -62,7 +61,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // --- Nueva función para actualizar la foto de perfil ---
     fun updateProfilePicture(uri: String) {
         viewModelScope.launch {
             val currentUser = _user.value ?: return@launch

@@ -14,7 +14,6 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
 
     private val repository = UserRepository(application)
 
-    // ... (Estados para los campos del formulario)
     private val _fullName = MutableStateFlow("")
     val fullName = _fullName.asStateFlow()
     private val _email = MutableStateFlow("")
@@ -24,7 +23,6 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
     private val _confirmPassword = MutableStateFlow("")
     val confirmPassword = _confirmPassword.asStateFlow()
 
-    // ... (Estados para los mensajes de error)
     private val _fullNameError = MutableStateFlow<String?>(null)
     val fullNameError = _fullNameError.asStateFlow()
     private val _emailError = MutableStateFlow<String?>(null)
@@ -42,17 +40,11 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
     fun onPasswordChange(password: String) { _password.value = password }
     fun onConfirmPasswordChange(password: String) { _confirmPassword.value = password }
 
-    // EXPLICACIÓN (Punto D): Esta función contiene la lógica de validación.
-    // La validación se realiza aquí, en el ViewModel, y no en la UI (la Screen).
-    // JUSTIFICACIÓN: Esto sigue el principio de "Separación de Intereses". La UI es "tonta": su única
-    // responsabilidad es mostrar los datos y los errores que el ViewModel le pasa. El ViewModel,
-    // en cambio, es "inteligente": contiene las reglas de negocio (qué hace que un email sea válido,
-    // los requisitos de la contraseña, etc.). Esto hace que el código sea más fácil de testear y mantener.
     fun register() {
         _fullNameError.value = Validator.validateFullName(_fullName.value)
         _emailError.value = Validator.validateEmail(_email.value)
         _passwordErrors.value = Validator.validatePassword(_password.value)
-        _confirmPasswordError.value = Validator.validateConfirmPassword(_password.value, _confirmPassword.value)
+        _confirmPasswordError.value = Validator.confirmPassword(_password.value, _confirmPassword.value)
 
         val hasErrors = _fullNameError.value != null || _emailError.value != null || _passwordErrors.value.isNotEmpty() || _confirmPasswordError.value != null
 

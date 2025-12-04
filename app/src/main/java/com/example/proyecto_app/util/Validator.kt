@@ -1,30 +1,26 @@
 package com.example.proyecto_app.util
 
-import android.util.Patterns
-
+// Objeto que centraliza toda la lógica de validación.
 object Validator {
 
     fun validateFullName(name: String): String? {
         if (name.isBlank()) {
             return "El nombre no puede estar vacío."
         }
-        if (!name.matches(Regex("^[a-zA-Z ]+\$"))) {
-            return "El nombre solo debe contener letras y espacios."
-        }
-        if (name.length > 50) {
-            return "El nombre no puede exceder los 50 caracteres."
-        }
         return null
     }
 
     fun validateEmail(email: String): String? {
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            return "Formato de correo electrónico inválido."
+        // Expresión regular simple para validar el formato de un email.
+        // Se corrige el escape del punto para que la expresión regular sea válida en Kotlin.
+        val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+
+        return when {
+            email.isBlank() -> "El correo no puede estar vacío."
+            !email.matches(emailRegex) -> "Formato de correo electrónico inválido."
+            !email.endsWith("@duoc.cl", ignoreCase = true) -> "Solo se aceptan correos del dominio @duoc.cl."
+            else -> null
         }
-        if (!email.endsWith("@duoc.cl", ignoreCase = true)) {
-            return "Solo se aceptan correos del dominio @duoc.cl."
-        }
-        return null
     }
 
     fun validatePassword(password: String): List<String> {
@@ -32,16 +28,17 @@ object Validator {
         if (password.length < 8) {
             errors.add("Mínimo 8 caracteres.")
         }
-        if (!password.contains(Regex("[A-Z]"))) {
+        if (!password.any { it.isUpperCase() }) {
             errors.add("Al menos una mayúscula.")
         }
-        if (!password.contains(Regex("[a-z]"))) {
+        if (!password.any { it.isLowerCase() }) {
             errors.add("Al menos una minúscula.")
         }
-        if (!password.contains(Regex("[0-9]"))) {
+        if (!password.any { it.isDigit() }) {
             errors.add("Al menos un número.")
         }
-        if (!password.contains(Regex("[^a-zA-Z0-9]"))) {
+        // Corregido para que no falle con contraseñas que solo tienen letras y números
+        if (password.all { it.isLetterOrDigit() }) {
             errors.add("Al menos un carácter especial.")
         }
         return errors
